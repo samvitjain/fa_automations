@@ -15,5 +15,6 @@ export class GoogleSheetController {
       results.push(...data);
     });
     console.log(response.data);
+    return response.data;
   }
 }
