@@ -1,16 +1,19 @@
 import { Controller, Get } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
+import * as csv from 'csv';
+import axios from 'axios';
 
 @Controller('api/v1/google-sheet')
 export class GoogleSheetController {
-  constructor(private httpService: HttpService) {}
   @Get('/fetch-data')
   async getSheetData(): Promise<any> {
     const sheetUrl =
-      'https://docs.google.com/spreadsheets/d/1dv75i9VLnIJXCybO3b92qCWB8BgaS0wNAlSz6W-ZzkU/export?format=csv';
-    const response = await this.httpService.get(sheetUrl).toPromise();
-    const csvData = response.data;
-    console.log(csvData); // or use a logger instance
-    return { message: 'Data logged!' };
+      'https://docs.google.com/spreadsheets/d/e/2PACX-1vSEWF0NOf_uf877sVdrOhnXJbyOE5iMz-5v3p2jbB4rJa5O6aV4fR8WmFKHjQeDg4TO5TbPDr8gYtdv/pub?gid=0&single=true&output=csv';
+    const response = await axios.get(sheetUrl);
+    const results = [];
+    csv.parse(response.data, (err: any, data: any) => {
+      if (err) throw err;
+      results.push(...data);
+    });
+    console.log(response.data);
   }
 }
