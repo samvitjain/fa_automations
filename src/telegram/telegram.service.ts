@@ -1,16 +1,15 @@
 import { Injectable } from '@nestjs/common';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const TelegramBot = require('node-telegram-bot-api');
+import * as TelegramBot from 'node-telegram-bot-api';
+import * as dotenv from 'dotenv';
+dotenv.config();
 
 @Injectable()
 export class TelegramService {
-  private bot: typeof TelegramBot;
-
-  TELEGRAM_BOT_TOKEN = '6186575821:AAGI8hnMOzN1g04pzKmaBrVS_O3kPcDjpMY';
+  private bot: TelegramBot;
 
   constructor() {
-    console.log('TELEGRAM_BOT_TOKEN:', this.TELEGRAM_BOT_TOKEN);
-    this.bot = new TelegramBot(this.TELEGRAM_BOT_TOKEN, {
+    console.log('TELEGRAM_BOT_TOKEN:', process.env.TELEGRAM_BOT_TOKEN);
+    this.bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, {
       polling: true,
     });
     this.bot.on('message', (msg) => {
