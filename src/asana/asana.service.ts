@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
-import asana from 'asana';
 import * as dotenv from 'dotenv';
 dotenv.config();
 @Injectable()
