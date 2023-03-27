@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
-import * as dotenv from 'dotenv';
-dotenv.config();
+
 @Injectable()
 export class AsanaService {
   private readonly ASANA_API_BASE_URL = 'https://app.asana.com/api/1.0';

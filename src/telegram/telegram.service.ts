@@ -1,8 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import * as TelegramBot from 'node-telegram-bot-api';
 import * as Asana from 'asana';
-import * as dotenv from 'dotenv';
-dotenv.config();
 @Injectable()
 export class TelegramService {
   private bot: TelegramBot;
