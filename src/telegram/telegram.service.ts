@@ -13,96 +13,99 @@ export class TelegramService {
     this.bot.on('message', (msg) => {
       console.log(`Chat ID: ${msg.chat.id}\nMessage: ${msg.text}`);
     });
-    const client = Asana.Client.create().useAccessToken(process.env.ASANA_ACCESS_TOKEN);
+    const client = Asana.Client.create().useAccessToken(
+      process.env.ASANA_ACCESS_TOKEN,
+    );
 
     function getAssigneeId(mention) {
-      mention = mention ? mention.toLowerCase() : "";
+      mention = mention ? mention.toLowerCase() : '';
       const assigneeMap = new Map([
-        ["riya", "1202546049582950"],
-        ["samvit", "samvit@flick2know.com"],
-        ["param", "34377429456964"],
-        ["animesh", "1202904304336852"],
-        ["aditya", "1201392479885593"],
-        ["chitransh", "415063412948698"],
-        ["sayantani", "1201373923823953"],
+        ['riya', '1202546049582950'],
+        ['samvit', 'samvit@flick2know.com'],
+        ['param', '34377429456964'],
+        ['animesh', '1202904304336852'],
+        ['aditya', '1201392479885593'],
+        ['chitransh', '415063412948698'],
+        ['sayantani', '1201373923823953'],
+        ['varun', 'varun@flick2know.com'],
       ]);
-    
+
       for (const userName of assigneeMap.keys()) {
         if (userName.includes(mention)) {
           return assigneeMap.get(userName);
         }
       }
-      return "0";
+      return '0';
     }
 
-    this.bot.on("message", (msg) => {
-      const messegeTexts = msg.text.split(" ");
-      if (messegeTexts[0] == "@fa_task_bot") {
+    this.bot.on('message', (msg) => {
+      const messegeTexts = msg.text.split(' ');
+      if (messegeTexts[0] == '@fa_task_bot') {
         const command = messegeTexts[1];
         const chatId = msg.chat.id;
         const assigneeId = getAssigneeId(messegeTexts[2]); // Send the assignee name
         console.log(assigneeId);
         switch (command) {
-          case "cr":
-          case "create":
+          case 'cr':
+          case 'create':
             // console.log(assigneeId);
             if (assigneeId == '0') {
               this.bot.sendMessage(chatId, `${messegeTexts[2]} user not found`);
             } else {
-              const taskName = messegeTexts.slice(3).join(" ").trim();
-    
+              const taskName = messegeTexts.slice(3).join(' ').trim();
+
               client.tasks
                 .create({
                   name: taskName,
                   assignee: assigneeId,
-                  workspace: "34125054317482",
-                  projects: ["1204172907154852"],
-                  followers: ["s.riya@flick2know.com"],
-                  due_on: '2023-03-27'
+                  workspace: '34125054317482',
+                  projects: ['1204172907154852'],
+                  followers: ['varun@flick2know.com'],
+                  due_on: '2023-03-27',
                 })
                 .then((task) => {
                   this.bot.sendMessage(
                     chatId,
-                    `Task created with title: ${task.name}  for: ${task.assignee.name}`
+                    `Task created with title: ${task.name}  for: ${task.assignee.name}`,
                   );
                 })
                 .catch((error) => {
                   console.error(error);
                   this.bot.sendMessage(
                     chatId,
-                    "An error occurred while creating the task on Asana."
+                    'An error occurred while creating the task on Asana.',
                   );
                 });
             }
-    
+
             break;
-          case "ls":
-          case "list":
-            const https = require("https");
-    
+          case 'ls':
+          case 'list':
+            const https = require('https');
+
             const accessToken =
-              "1/1190264422161000:12ed156cf7166ab978ec91cd40f0ce53";
+              '1/1190264422161000:12ed156cf7166ab978ec91cd40f0ce53';
             // assigneeId = assignee;
-            const workspaceId = "34125054317482";
-            const projectId = "1204172907154852";
-    
+            const workspaceId = '34125054317482';
+            const projectId = '1204172907154852';
+
             const options = {
-              hostname: "app.asana.com",
+              hostname: 'app.asana.com',
               path: `/api/1.0/projects/${projectId}/tasks`,
               headers: {
                 Authorization: `Bearer ${accessToken}`,
               },
             };
-    
+
             https
               .get(options, (response) => {
-                let data = "";
-    
-                response.on("data", (chunk) => {
+                let data = '';
+
+                response.on('data', (chunk) => {
                   data += chunk;
                 });
-    
-                response.on("end", () => {
+
+                response.on('end', () => {
                   console.log(data); // log the entire response
                   const tasks = JSON.parse(data).data;
                   if (tasks.length > 0) {
@@ -110,28 +113,28 @@ export class TelegramService {
                       return this.bot.sendMessage(chatId, task.name);
                     });
                   } else {
-                    this.bot.sendMessage(chatId, "No tasks in the project");
+                    this.bot.sendMessage(chatId, 'No tasks in the project');
                   }
                 });
               })
-              .on("error", (error) => {
+              .on('error', (error) => {
                 console.error(error);
               });
-    
+
             break;
           default:
             this.bot.sendMessage(
               chatId,
-              "Available commands are:\ncreate\t cr\nlist \tls"
+              'Available commands are:\ncreate\t cr\nlist \tls',
             );
         }
       } else {
         // Privacy mode
-        console.log("Bot not mentioned");
+        console.log('Bot not mentioned');
       }
     });
-    
-    this.bot.on("polling_error", (error) => {
+
+    this.bot.on('polling_error', (error) => {
       console.log(`Polling error: ${error}`);
     });
   }
