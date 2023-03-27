@@ -8,6 +8,9 @@ export class FAUser {
   id: number;
 
   @Column()
+  email: string;
+
+  @Column()
   firstName: string;
 
   @Column()
