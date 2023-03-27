@@ -21,7 +21,7 @@ export class TelegramService {
       mention = mention ? mention.toLowerCase() : "";
       const assigneeMap = new Map([
         ["riya", "1202546049582950"],
-        ["samvit", "1190264423157915"],
+        ["samvit", "samvit@flick2know.com"],
         ["param", "34377429456964"],
         ["animesh", "1202904304336852"],
         ["aditya", "1201392479885593"],
@@ -59,6 +59,8 @@ export class TelegramService {
                   assignee: assigneeId,
                   workspace: "34125054317482",
                   projects: ["1204172907154852"],
+                  followers: ["s.riya@flick2know.com"],
+                  due_on: '2023-03-27'
                 })
                 .then((task) => {
                   this.bot.sendMessage(
