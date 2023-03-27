@@ -11,10 +11,10 @@ import { AsanaProject } from './entities/asana-project.entity';
   imports: [
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: process.env.POSTGRES_HOST,
+      host: 'fa-automations-debug.cgdpzbzq8oyv.us-east-1.rds.amazonaws.com',
       port: 5432,
       username: 'postgres',
-      password: process.env.POSTGRES_PASSWORD,
+      password: 'Sam#466987435',
       database: 'postgres',
       entities: [FAUser, AsanaProject],
       autoLoadEntities: true,
