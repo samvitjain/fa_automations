@@ -1,4 +1,5 @@
 /* eslint-disable prettier/prettier */
+import { UserType } from 'src/constants/user-type.enum';
 import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
 @Entity()
