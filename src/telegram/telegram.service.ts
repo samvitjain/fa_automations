@@ -1,11 +1,20 @@
 import { Injectable } from '@nestjs/common';
 import * as TelegramBot from 'node-telegram-bot-api';
 import * as Asana from 'asana';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { FAUser } from 'src/entities/fa-user.entity';
+import { AsanaProject } from 'src/entities/asana-project.entity';
 @Injectable()
 export class TelegramService {
   private bot: TelegramBot;
 
-  constructor() {
+  constructor(
+    @InjectRepository(FAUser)
+    private usersRepository: Repository<FAUser>,
+    @InjectRepository(AsanaProject)
+    private roomRepository: Repository<AsanaProject>,
+  ) {
     console.log('TELEGRAM_BOT_TOKEN:', process.env.TELEGRAM_BOT_TOKEN);
     this.bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, {
       polling: true,
