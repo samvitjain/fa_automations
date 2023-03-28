@@ -14,7 +14,7 @@ export class TelegramService {
     @InjectRepository(FAUser)
     private usersRepository: Repository<FAUser>,
     @InjectRepository(AsanaProject)
-    private roomRepository: Repository<AsanaProject>,
+    private projectRrepository: Repository<AsanaProject>,
   ) {
     console.log('TELEGRAM_BOT_TOKEN:', process.env.TELEGRAM_BOT_TOKEN);
     this.bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, {
