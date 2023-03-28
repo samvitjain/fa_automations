@@ -1,11 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import * as TelegramBot from 'node-telegram-bot-api';
 import * as Asana from 'asana';
+
 @Injectable()
 export class TelegramService {
   private bot: TelegramBot;
 
   constructor() {
+  
     console.log('TELEGRAM_BOT_TOKEN:', process.env.TELEGRAM_BOT_TOKEN);
     this.bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, {
       polling: true,
@@ -38,7 +40,7 @@ export class TelegramService {
       return '0';
     }
 
-    this.bot.on('message', (msg) => {
+    this.bot.on('message', async (msg) => {
       const messegeTexts = msg.text.split(' ');
       if (messegeTexts[0] == '@fa_task_bot') {
         const command = messegeTexts[1];
@@ -48,10 +50,8 @@ export class TelegramService {
         switch (command) {
           case 'cr':
           case 'create':
-            // console.log(assigneeId);
-            if (assigneeId == '0') {
-              this.bot.sendMessage(chatId, `${messegeTexts[2]} user not found`);
-            } else {
+            const existingProject = await this.findProjectById(client, '1204172907154852');
+            if (existingProject) {
               const taskName = messegeTexts.slice(3).join(' ').trim();
 
               client.tasks
@@ -59,8 +59,8 @@ export class TelegramService {
                   name: taskName,
                   assignee: assigneeId,
                   workspace: '34125054317482',
-                  projects: ['1204172907154852'],
-                  followers: ['varun@flick2know.com'],
+                  projects: [existingProject.project_id],
+                  followers: [msg.from.username],
                   due_on: '2023-03-27',
                 })
                 .then((task) => {
@@ -76,9 +76,60 @@ export class TelegramService {
                     'An error occurred while creating the task on Asana.',
                   );
                 });
-            }
+            } else {
+              const projectName = messegeTexts.slice(2).join(' ').trim();
 
+              client.projects
+                .create({
+                  name: projectName,
+                  workspace: '34125054317482',
+                })
+                .then((project) => {
+                  this.bot.sendMessage(
+                    chatId,
+                    `Project created with name: ${project.name}`,
+                  );
+                  const projectDetails = {
+                    chat_id: chatId,
+                    project_id: project.gid,
+                  };
+                  
+
+                  const taskName = messegeTexts.slice(2).join(' ').trim();
+
+                  client.tasks
+                    .create({
+                      name: taskName,
+                      assignee: assigneeId,
+                      workspace: '34125054317482',
+                      projects: [project.gid],
+                      followers: [msg.from.username],
+                      due_on: '2023-03-27',
+                    })
+                    .then((task) => {
+                      this.bot.sendMessage(
+                        chatId,
+                        `Task created with title: ${task.name}  for: ${task.assignee.name}`,
+                      );
+                    })
+                    .catch((error) => {
+                      console.error(error);
+                      this.bot.sendMessage(
+                        chatId,
+                        'An error occurred while creating the task on Asana.',
+                      );
+                    });
+                })
+                .catch((error) => {
+                  console.error(error);
+                  this.bot.sendMessage(
+                    chatId,
+                    'An error occurred while creating the project on Asana.',
+                  );
+                });
+            }
             break;
+
           case 'ls':
           case 'list':
             const https = require('https');
@@ -138,6 +189,15 @@ export class TelegramService {
       console.log(`Polling error: ${error}`);
     });
   }
+  async findProjectById(client: Asana.Client, projectId: string): Promise<any> {
+    try {
+      const project = await client.projects.findById(projectId);
+      return project;
+    } catch (error) {
+      console.error(`Error finding project with ID ${projectId}: ${error}`);
+      throw error;
+    }
+  }
 
   async sendMessage(chatId: string, message: string) {
     try {
@@ -147,4 +207,6 @@ export class TelegramService {
       return { success: false, error };
     }
   }
+  
 }
+
