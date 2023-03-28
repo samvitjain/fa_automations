@@ -5,6 +5,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { FAUser } from 'src/entities/fa-user.entity';
 import { AsanaProject } from 'src/entities/asana-project.entity';
+const https = require('https');
 @Injectable()
 export class TelegramService {
   private bot: TelegramBot;
@@ -47,6 +48,41 @@ export class TelegramService {
       return '0';
     }
 
+    function createNewProject(projectName) {
+      const options = {
+        hostname: 'app.asana.com',
+        path: '/api/1.0/projects',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${process.env.ASANA_ACCESS_TOKEN}`,
+        },
+      };
+
+      const data = {
+        data: {
+          team: '1204103455728242',
+          name: projectName,
+          workspace: '34125054317482',
+        },
+      };
+
+      const req = https.request(options, (res) => {
+        console.log(`statusCode: ${res.statusCode}`);
+
+        res.on('data', (d) => {
+          process.stdout.write(d);
+        });
+      });
+
+      req.on('error', (error) => {
+        console.error(error);
+      });
+
+      req.write(JSON.stringify(data));
+      req.end();
+    }
+
     this.bot.on('message', (msg) => {
       const messegeTexts = msg.text.split(' ');
       if (messegeTexts[0] == '@fa_task_bot') {
@@ -54,10 +90,13 @@ export class TelegramService {
         const chatId = msg.chat.id;
         const assigneeId = getAssigneeId(messegeTexts[2]); // Send the assignee name
         console.log(assigneeId);
+        if (true) {
+          const projectName = messegeTexts.slice(2).join(' ').trim();
+          createNewProject(projectName);
+        }
         switch (command) {
           case 'cr':
           case 'create':
-            // console.log(assigneeId);
             if (assigneeId == '0') {
               this.bot.sendMessage(chatId, `${messegeTexts[2]} user not found`);
             } else {
