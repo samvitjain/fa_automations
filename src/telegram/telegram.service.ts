@@ -91,6 +91,7 @@ export class TelegramService {
         const assigneeId = getAssigneeId(messegeTexts[2]); // Send the assignee name
         console.log(assigneeId);
         if (true) {
+          // TODO(Riya): add condition to check if there is a project corresponding to this chatId
           const projectName = messegeTexts.slice(2).join(' ').trim();
           createNewProject(projectName);
         }
@@ -107,8 +108,8 @@ export class TelegramService {
                   name: taskName,
                   assignee: assigneeId,
                   workspace: '34125054317482',
-                  projects: ['1204172907154852'],
-                  followers: ['varun@flick2know.com'],
+                  projects: ['1204172907154852'], // TODO (Riya): Make the project dynamic
+                  followers: ['varun@flick2know.com'], // TODO (Riya): Make task creator as the follower
                   due_on: '2023-03-27',
                 })
                 .then((task) => {
