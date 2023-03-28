@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import * as TelegramBot from 'node-telegram-bot-api';
 import * as Asana from 'asana';
+const request = require('request');
+const https = require('https');
 @Injectable()
 export class TelegramService {
   private bot: TelegramBot;
@@ -37,7 +39,8 @@ export class TelegramService {
       }
       return '0';
     }
-
+    const accessToken =
+    '1/1190264422161000:12ed156cf7166ab978ec91cd40f0ce53';
     this.bot.on('message', (msg) => {
       const messegeTexts = msg.text.split(' ');
       if (messegeTexts[0] == '@fa_task_bot') {
@@ -79,17 +82,46 @@ export class TelegramService {
             }
 
             break;
+
+          case 'create_project':
+          const projectName = messegeTexts.slice(2).join(' ').trim();
+            const data = {
+              name: projectName,
+              workspaceId: '34125054317482',        
+            };
+            const createProject = {
+              uri: 'https://app.asana.com/api/1.0/projects',
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + accessToken
+              },
+              data: {data: {team: '1204103455728242', name: 'bot beta testing'}}
+            };
+            
+            request(createProject, (error, response, body) => {
+              if (!error && response.statusCode == 200) {
+                const project = JSON.parse(body).data;
+                this.bot.sendMessage(
+                  chatId,
+                  `Project created with name: ${project.name}`,
+                );
+              } else {
+                console.error(`Error ${response.statusCode}: ${body}`);
+                this.bot.sendMessage(chatId, `Error ${response.statusCode}: ${body}`);
+                
+              }
+            });
+            break;
+
           case 'ls':
           case 'list':
-            const https = require('https');
 
-            const accessToken =
-              '1/1190264422161000:12ed156cf7166ab978ec91cd40f0ce53';
             // assigneeId = assignee;
             const workspaceId = '34125054317482';
             const projectId = '1204172907154852';
 
-            const options = {
+            const listTask = {
               hostname: 'app.asana.com',
               path: `/api/1.0/projects/${projectId}/tasks`,
               headers: {
@@ -98,7 +130,7 @@ export class TelegramService {
             };
 
             https
-              .get(options, (response) => {
+              .get(listTask, (response) => {
                 let data = '';
 
                 response.on('data', (chunk) => {
@@ -125,7 +157,7 @@ export class TelegramService {
           default:
             this.bot.sendMessage(
               chatId,
-              'Available commands are:\ncreate\t cr\nlist \tls',
+              'Available commands are:\ncreate\t cr\ncreate_project\nlist \tls',
             );
         }
       } else {
