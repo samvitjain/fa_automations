@@ -82,9 +82,9 @@ export class TelegramService {
       req.write(JSON.stringify(data));
       req.end();
     }
-    
-    
+
     this.bot.on('message', async (msg) => {
+      console.log(msg);
       const messegeTexts = msg.text.split(' ');
       if (messegeTexts[0] == '@fa_task_bot') {
         const command = messegeTexts[1];
@@ -93,23 +93,27 @@ export class TelegramService {
         console.log(assigneeId);
         const taskName = messegeTexts.slice(3).join(' ').trim();
 
-        const existingProject = await this.projectRrepository.findOne({ where: { telegramChatId: chatId.toString()  } });
+        const existingProject = await this.projectRrepository.findOne({
+          where: { telegramChatId: chatId.toString() },
+        });
 
         if (existingProject) {
-          console.log(`Task created in existing project ${existingProject.name}: ${taskName}`);
+          console.log(
+            `Task created in existing project ${existingProject.name}: ${taskName}`,
+          );
         } else {
-          const projectName = messegeTexts.slice(2).join(' ').trim();
+          const projectName = msg.chat.title;
           await createNewProject(projectName);
           const asanaProject = new AsanaProject();
           asanaProject.telegramChatId = chatId.toString();
           asanaProject.name = projectName;
-          asanaProject.asanaId= '1234';
+          asanaProject.asanaId = '1234';
           await this.projectRrepository.save(asanaProject);
-          console.log(`Task created in new project ${projectName}: ${taskName}`);
+          console.log(
+            `Task created in new project ${projectName}: ${taskName}`,
+          );
         }
-        
-        
-        
+
         switch (command) {
           case 'cr':
           case 'create':
