@@ -84,7 +84,7 @@ export class TelegramService {
     }
 
     this.bot.on('message', async (msg) => {
-      console.log(msg);
+      if(msg && msg.text){
       const messegeTexts = msg.text.split(' ');
       if (messegeTexts[0] == '@fa_task_bot') {
         const command = messegeTexts[1];
@@ -196,7 +196,8 @@ export class TelegramService {
               'Available commands are:\ncreate\t cr\nlist \tls',
             );
         }
-      } else {
+      }
+     } else {
         // Privacy mode
         console.log('Bot not mentioned');
       }
