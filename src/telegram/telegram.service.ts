@@ -4,6 +4,7 @@ import * as Asana from 'asana';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { FAUser } from 'src/entities/fa-user.entity';
+import { getAssigneeId } from 'src/telegram/telegram.utils'
 import { AsanaProject } from 'src/entities/asana-project.entity';
 const https = require('https');
 @Injectable()
@@ -23,30 +24,13 @@ export class TelegramService {
     this.bot.on('message', (msg) => {
       console.log(`Chat ID: ${msg.chat.id}\nMessage: ${msg.text}`);
     });
-    const client = Asana.Client.create().useAccessToken(
+    const client = Asana.Client.create({
+      defaultHeaders: {
+        'Asana-Enable': 'new_goal_memberships'
+      }
+    }).useAccessToken(
       process.env.ASANA_ACCESS_TOKEN,
     );
-
-    function getAssigneeId(mention) {
-      mention = mention ? mention.toLowerCase() : '';
-      const assigneeMap = new Map([
-        ['riya', '1202546049582950'],
-        ['samvit', 'samvit@flick2know.com'],
-        ['param', '34377429456964'],
-        ['animesh', '1202904304336852'],
-        ['aditya', '1201392479885593'],
-        ['chitransh', '415063412948698'],
-        ['sayantani', '1201373923823953'],
-        ['varun', 'varun@flick2know.com'],
-      ]);
-
-      for (const userName of assigneeMap.keys()) {
-        if (userName.includes(mention)) {
-          return assigneeMap.get(userName);
-        }
-      }
-      return '0';
-    }
 
     function createNewProject(projectName) {
       const options = {
@@ -85,34 +69,17 @@ export class TelegramService {
 
     this.bot.on('message', async (msg) => {
       if(msg && msg.text){
+        console.log(msg);
       const messegeTexts = msg.text.split(' ');
+
       if (messegeTexts[0] == '@fa_task_bot') {
         const command = messegeTexts[1];
         const chatId = msg.chat.id;
+        const creator = `${msg.from.first_name} ${msg.from.last_name}`;
         const assigneeId = getAssigneeId(messegeTexts[2]); // Send the assignee name
         console.log(assigneeId);
+        console.log("creator:-" ,creator);
         const taskName = messegeTexts.slice(3).join(' ').trim();
-
-        const existingProject = await this.projectRrepository.findOne({
-          where: { telegramChatId: chatId.toString() },
-        });
-
-        if (existingProject) {
-          console.log(
-            `Task created in existing project ${existingProject.name}: ${taskName}`,
-          );
-        } else {
-          const projectName = msg.chat.title;
-          await createNewProject(projectName);
-          const asanaProject = new AsanaProject();
-          asanaProject.telegramChatId = chatId.toString();
-          asanaProject.name = projectName;
-          asanaProject.asanaId = '1234';
-          await this.projectRrepository.save(asanaProject);
-          console.log(
-            `Task created in new project ${projectName}: ${taskName}`,
-          );
-        }
 
         switch (command) {
           case 'cr':
@@ -121,6 +88,26 @@ export class TelegramService {
               this.bot.sendMessage(chatId, `${messegeTexts[2]} user not found`);
             } else {
               const taskName = messegeTexts.slice(3).join(' ').trim();
+              const existingProject = await this.projectRrepository.findOne({
+                where: { telegramChatId: chatId.toString() },
+              });
+      
+              if (existingProject) {
+                console.log(
+                  `Task created in existing project ${existingProject.name}: ${taskName}`,
+                );
+              } else {
+                const projectName = msg.chat.title;
+                await createNewProject(projectName);
+                const asanaProject = new AsanaProject();
+                asanaProject.telegramChatId = chatId.toString();
+                asanaProject.name = projectName;
+                asanaProject.asanaId = '1234';
+                await this.projectRrepository.save(asanaProject);
+                console.log(
+                  `Task created in new project ${projectName}: ${taskName}`,
+                );
+              }
 
               client.tasks
                 .create({
@@ -128,8 +115,8 @@ export class TelegramService {
                   assignee: assigneeId,
                   workspace: '34125054317482',
                   projects: ['1204172907154852'], // TODO (Riya): Make the project dynamic
-                  followers: ['varun@flick2know.com'], // TODO (Riya): Make task creator as the follower
-                  due_on: '2023-03-27',
+                  followers: [`${msg.from.first_name} ${msg.from.last_name}`],
+                  due_on: '2023-03-29',
                 })
                 .then((task) => {
                   this.bot.sendMessage(
