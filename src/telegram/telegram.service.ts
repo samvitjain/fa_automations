@@ -10,6 +10,7 @@ const https = require('https');
 @Injectable()
 export class TelegramService {
   private bot: TelegramBot;
+  private asanaProject: AsanaProject;
 
   constructor(
     @InjectRepository(FAUser)
@@ -20,9 +21,6 @@ export class TelegramService {
     console.log('TELEGRAM_BOT_TOKEN:', process.env.TELEGRAM_BOT_TOKEN);
     this.bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, {
       polling: true,
-    });
-    this.bot.on('message', (msg) => {
-      console.log(`Chat ID: ${msg.chat.id}\nMessage: ${msg.text}`);
     });
     const client = Asana.Client.create({
       defaultHeaders: {
@@ -50,10 +48,11 @@ export class TelegramService {
       };
 
       const req = https.request(options, (res) => {
-        console.log(`statusCode: ${res.statusCode}`);
+        // console.log(`statusCode: ${res.statusCode}`);
 
         res.on('data', (d) => {
-          process.stdout.write(d);
+          const responseData = JSON.parse(d.toString());
+          return responseData.data.gid;
         });
       });
 
@@ -62,21 +61,19 @@ export class TelegramService {
       });
 
       req.write(JSON.stringify(data));
+
       req.end();
     }
 
     this.bot.on('message', async (msg) => {
       if (msg && msg.text) {
-        console.log(msg);
         const messegeTexts = msg.text.split(' ');
-
         if (messegeTexts[0] == '@fa_task_bot') {
+          // console.log(msg);
           const command = messegeTexts[1];
           const chatId = msg.chat.id;
           const creator = getAssigneeId(msg.from.first_name.toLowerCase());
           const assigneeId = getAssigneeId(messegeTexts[2]); // Send the assignee name
-          console.log(assigneeId);
-          console.log('creator:-', creator);
           const taskName = messegeTexts.slice(3).join(' ').trim();
 
           switch (command) {
@@ -89,25 +86,19 @@ export class TelegramService {
                 );
               } else {
                 const taskName = messegeTexts.slice(3).join(' ').trim();
-
-                const existingProject = await this.projectRrepository.findOne({
+                this.asanaProject = new AsanaProject();
+                this.asanaProject = await this.projectRrepository.findOne({
                   where: { telegramChatId: chatId.toString() },
                 });
 
-                if (existingProject) {
+                if (!this.asanaProject) {
                   client.tasks
                     .create({
                       name: taskName,
                       assignee: assigneeId,
                       workspace: '34125054317482',
-                      projects: [
-                        // '1204172907154852',
-                        existingProject.telegramChatId
-                      ],
-                      followers: [
-                        creator,
-                        
-                      ],
+                      projects: [this.asanaProject.asanaId],
+                      followers: [creator],
                       due_on: '2023-03-29',
                     })
                     .then((task) => {
@@ -123,46 +114,45 @@ export class TelegramService {
                         'An error occurred while creating the task on Asana.',
                       );
                     });
-                  console.log(
-                    `Task created in existing project ${existingProject.name}: ${taskName}`,
-                  );
+                  // console.log(
+                  //   `Task created in existing project ${this.asanaProject.name}: ${taskName}`,
+                  // );
                 } else {
                   const projectName = msg.chat.title;
-                  await createNewProject(projectName);
-                  const asanaProject = new AsanaProject();
-                  asanaProject.telegramChatId = chatId.toString();
-                  asanaProject.name = projectName;
-                  asanaProject.asanaId = '1234';
-                  await this.projectRrepository.save(asanaProject);
+                  this.asanaProject = new AsanaProject();
+                  let asanaId = await createNewProject(projectName);
+                  this.asanaProject.telegramChatId = chatId.toString();
+                  this.asanaProject.name = projectName;
+                  this.asanaProject.asanaId = asanaId;
+                  // await this.projectRrepository.save(this.asanaProject);
 
-                  console.log('projectName'+' '+projectName);
+                  // console.log('projectName' + ' ' + projectName);
 
-                  client.tasks
-                  .create({
-                    name: taskName,
-                    assignee: assigneeId,
-                    workspace: '34125054317482',
-                    projects: [asanaProject.telegramChatId],
-                    followers: [
-                      creator
-                    ],
-                    due_on: '2023-03-29',
-                  }).then((task) => {
-                    this.bot.sendMessage(
-                      chatId,
-                      `Task created with title: ${task.name}  for: ${task.assignee.name}`,
-                    );
-                  })
-                  .catch((error) => {
-                    console.error(error);
-                    this.bot.sendMessage(
-                      chatId,
-                      'An error occurred while creating the task on Asana.',
-                    );
-                  });
-                  console.log(
-                    `Task created in new project ${projectName}: ${taskName}`,
-                  );
+                  // client.tasks
+                  //   .create({
+                  //     name: taskName,
+                  //     assignee: assigneeId,
+                  //     workspace: '34125054317482',
+                  //     projects: [this.asanaProject.asanaId],
+                  //     followers: [creator],
+                  //     due_on: '2023-03-29',
+                  //   })
+                  //   .then((task) => {
+                  //     this.bot.sendMessage(
+                  //       chatId,
+                  //       `Task created with title: ${task.name}  for: ${task.assignee.name}`,
+                  //     );
+                  //   })
+                  //   .catch((error) => {
+                  //     console.error(error);
+                  //     this.bot.sendMessage(
+                  //       chatId,
+                  //       'An error occurred while creating the task on Asana.',
+                  //     );
+                  //   });
+                  // console.log(
+                  //   `Task created in new project ${projectName}: ${taskName}`,
+                  // );
                 }
               }
 
@@ -194,7 +184,7 @@ export class TelegramService {
                   });
 
                   response.on('end', () => {
-                    console.log(data); // log the entire response
+                    // console.log(data); // log the entire response
                     const tasks = JSON.parse(data).data;
                     if (tasks.length > 0) {
                       tasks.forEach((task) => {
