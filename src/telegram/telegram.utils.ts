@@ -1,7 +1,8 @@
 export function getAssigneeId(mention) {
     mention = mention ? mention.toLowerCase() : '';
+    
     const assigneeMap = new Map([
-      ['Riya Sharma', 's.riya@flick2know.com'],
+      ['riya', 's.riya@flick2know.com'],
       ['samvit', 'samvit@flick2know.com'],
       ['param', '34377429456964'],
       ['animesh', '1202904304336852'],
