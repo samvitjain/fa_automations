@@ -144,8 +144,7 @@ export class TelegramService {
                     workspace: '34125054317482',
                     projects: [asanaProject.telegramChatId],
                     followers: [
-                      // `${msg.from.first_name} ${msg.from.last_name}`,
-                      assigneeId
+                      creator
                     ],
                     due_on: '2023-03-29',
                   }).then((task) => {
