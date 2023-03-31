@@ -28,7 +28,8 @@ export class TelegramService {
       },
     }).useAccessToken(process.env.ASANA_ACCESS_TOKEN);
 
-    function createNewProject(projectName) {
+
+    function createNewProject(projectName, callback) {
       const options = {
         hostname: 'app.asana.com',
         path: '/api/1.0/projects',
@@ -38,7 +39,7 @@ export class TelegramService {
           Authorization: `Bearer ${process.env.ASANA_ACCESS_TOKEN}`,
         },
       };
-
+    
       const data = {
         data: {
           team: '1204103455728242',
@@ -46,24 +47,24 @@ export class TelegramService {
           workspace: '34125054317482',
         },
       };
-
+    
       const req = https.request(options, (res) => {
-        // console.log(`statusCode: ${res.statusCode}`);
-
         res.on('data', (d) => {
           const responseData = JSON.parse(d.toString());
-          return responseData.data.gid;
+          const gid = responseData.data.gid;
+          callback(gid);
         });
       });
-
+    
       req.on('error', (error) => {
         console.error(error);
       });
-
+    
       req.write(JSON.stringify(data));
-
+    
       req.end();
     }
+    
 
     this.bot.on('message', async (msg) => {
       if (msg && msg.text) {
@@ -72,6 +73,7 @@ export class TelegramService {
           // console.log(msg);
           const command = messegeTexts[1];
           const chatId = msg.chat.id;
+          console.log(chatId);
           const creator = getAssigneeId(msg.from.first_name.toLowerCase());
           const assigneeId = getAssigneeId(messegeTexts[2]); // Send the assignee name
           const taskName = messegeTexts.slice(3).join(' ').trim();
@@ -90,6 +92,7 @@ export class TelegramService {
                 this.asanaProject = await this.projectRrepository.findOne({
                   where: { telegramChatId: chatId.toString() },
                 });
+                const projectName = msg.chat.title;
 
                 if (!this.asanaProject) {
                   client.tasks
@@ -102,28 +105,110 @@ export class TelegramService {
                       due_on: '2023-03-29',
                     })
                     .then((task) => {
+                      console.log('Task created successfully in Asana:', task);
+                
+                      if (projectName.trim() === '') {
+                        console.error('Project name cannot be empty.');
+                        return;
+                      }
+                
+                      createNewProject(projectName, (asanaId) => {
+                        if (this.asanaProject) {
+                          this.asanaProject.telegramChatId = chatId.toString();
+                          this.asanaProject.name = projectName;
+                          this.asanaProject.asanaId = asanaId;
+                        } else {
+                          this.asanaProject = new AsanaProject();
+                          this.asanaProject.telegramChatId = chatId.toString();
+                          this.asanaProject.name = projectName;
+                          this.asanaProject.asanaId = asanaId;
+                        }
+                        this.projectRrepository.save(this.asanaProject)
+                        .then(() => {
+                          console.log('Asana project created and saved.');
+                        })
+                        .catch((error) => {
+                          console.error('Error saving Asana project to database:', error);
+                        });
+                      });
+                      console.log("asanaID ----------> ", this.asanaProject.asanaId);
                       this.bot.sendMessage(
                         chatId,
                         `Task created with title: ${task.name}  for: ${task.assignee.name}`,
                       );
                     })
                     .catch((error) => {
-                      console.error(error);
+                      console.error('Error creating task in Asana:', error);
                       this.bot.sendMessage(
                         chatId,
                         'An error occurred while creating the task on Asana.',
                       );
                     });
-                  // console.log(
-                  //   `Task created in existing project ${this.asanaProject.name}: ${taskName}`,
-                  // );
                 } else {
-                  const projectName = msg.chat.title;
-                  this.asanaProject = new AsanaProject();
-                  let asanaId = await createNewProject(projectName);
-                  this.asanaProject.telegramChatId = chatId.toString();
-                  this.asanaProject.name = projectName;
-                  this.asanaProject.asanaId = asanaId;
+ 
+                  client.tasks
+                    .create({
+                      name: taskName,
+                      assignee: assigneeId,
+                      workspace: '34125054317482',
+                      projects: [this.asanaProject.asanaId],
+                      followers: [creator],
+                      due_on: '2023-03-29',
+                    })
+                    .then((task) => {
+                      console.log('Task created successfully in Asana:', task);
+                
+                      this.bot.sendMessage(
+                        chatId,
+                        `Task created with title: ${task.name}  for: ${task.assignee.name}`,
+                      );
+                    })
+                    .catch((error) => {
+                      console.error('Error creating task in Asana:', error);
+                      this.bot.sendMessage(
+                        chatId,
+                        'An error occurred while creating the task on Asana.',
+                      );
+                    });
+                }
+                
+// ----------------------------------------------------------------------------------------------------------
+                // if (!this.asanaProject) {
+                //   client.tasks
+                //     .create({
+                //       name: taskName,
+                //       assignee: assigneeId,
+                //       workspace: '34125054317482',
+                //       projects: [this.asanaProject.asanaId],
+                //       followers: [creator],
+                //       due_on: '2023-03-29',
+                //     })
+                //     .then((task) => {
+                //       this.bot.sendMessage(
+                //         chatId,
+                //         `Task created with title: ${task.name}  for: ${task.assignee.name}`,
+                //       );
+                //     })
+                //     .catch((error) => {
+                //       console.error(error);
+                //       this.bot.sendMessage(
+                //         chatId,
+                //         'An error occurred while creating the task on Asana.',
+                //       );
+                //     });
+                //   // console.log(
+                //   //   `Task created in existing project ${this.asanaProject.name}: ${taskName}`,
+                //   // );
+                // } else {
+                //   const projectName = msg.chat.title;
+                //   this.asanaProject = new AsanaProject();
+                //   createNewProject(projectName, (asanaId) => {
+                //     this.asanaProject.telegramChatId = chatId.toString();
+                //     this.asanaProject.name = projectName;
+                //     this.asanaProject.asanaId = asanaId;
+                //     console.log(asanaId);
+                //     this.projectRrepository.save(this.asanaProject);
+                //   });
                   // await this.projectRrepository.save(this.asanaProject);
 
                   // console.log('projectName' + ' ' + projectName);
@@ -153,10 +238,8 @@ export class TelegramService {
                   // console.log(
                   //   `Task created in new project ${projectName}: ${taskName}`,
                   // );
-                }
               }
-
-              break;
+            break;
             case 'ls':
             case 'list':
               const https = require('https');
