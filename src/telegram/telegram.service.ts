@@ -101,8 +101,8 @@ export class TelegramService {
                       assignee: assigneeId,
                       workspace: '34125054317482',
                       projects: [this.asanaProject.asanaId],
-                      followers: [creator],
-                      due_on: '2023-03-29',
+                      followers: [creator, assigneeId],
+                      due_on: '2023-03-31',
                     })
                     .then((task) => {
                       console.log('Task created successfully in Asana:', task);
@@ -152,8 +152,8 @@ export class TelegramService {
                       assignee: assigneeId,
                       workspace: '34125054317482',
                       projects: [this.asanaProject.asanaId],
-                      followers: [creator],
-                      due_on: '2023-03-29',
+                      followers: [creator, assigneeId],
+                      due_on: '2023-03-31',
                     })
                     .then((task) => {
                       console.log('Task created successfully in Asana:', task);
